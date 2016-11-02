@@ -1,0 +1,26 @@
+<?php
+
+namespace Inventory\Admin\Traits;
+
+use Inventory\Admin\Helper;
+use Illuminate\Database\Eloquent\Model;
+
+trait InventoryTransactionHistoryTrait
+{
+    /**
+     * Make sure we try and assign the current user if enabled.
+     */
+    public static function bootInventoryTransactionHistoryTrait()
+    {
+        static::creating(function (Model $model) {
+            $model->setAttribute('user_id', Helper::getCurrentUserId());
+        });
+    }
+
+    /**
+     * The belongsTo stock relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    abstract public function transaction();
+}

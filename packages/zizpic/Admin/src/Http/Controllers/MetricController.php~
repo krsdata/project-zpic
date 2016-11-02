@@ -1,0 +1,190 @@
+<?php
+
+namespace Inventory\Admin\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Redirect;
+use App\Http\Requests;
+use Illuminate\Http\Request;
+use Illuminate\View;
+use Input;
+use Validator;
+use Inventory\Admin\Models\Metric;
+use Auth;
+use Paginate;
+use App\Helpers\Helper as Helper; 
+
+//use Inventory\Admin\Http\Requests\MetricRequest;
+
+/**
+ * Class MetricController
+ */
+class MetricController extends Controller
+{
+    /**
+     * @var MetricRepository
+     */
+    protected $metric;
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+    /**
+     * Displays all metrics.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function index()
+    {   
+	
+	$helperObj =  new Helper;
+
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+            
+	$page_action_title = 'Metrics';
+        $page_title = 'Metics Management';
+        if(Auth::user()->exists)
+        {
+            $results =  Metric::where('user_id',Auth::user()->id)->orderBy('id', 'desc')->paginate(Config::get('app.NumberOfPerPage'));
+            $results->setPath('metrics'); // set path for pagination fix
+        }else{
+            $results = null;
+        } 
+        return view('packages::metrics.index',compact('results','page_action_title','page_title'));
+    }
+
+    /**
+     * Displays the form to create a metric.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function create()
+    {
+	$helperObj =  new Helper;
+
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+            
+	$page_action_title = 'Create Metric';
+        $page_title = 'Metrics Management';
+        return view('packages::metrics.create', compact('page_action_title','page_title'));
+    }
+
+    /**
+     * Creates a metric.
+     *
+     * @param MetricRequest $request
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function store()
+    {
+        $rules = [
+            'name' => 'required',
+            'symbol' => 'required',
+        ];
+
+        $validator = Validator::make(Input::all(), $rules);
+        if ($validator->fails()) {
+            return Redirect::to('inventory/metrics/create')
+                ->withErrors($validator);
+        } else {
+          $obj =  new Metric;
+          $obj->name = Input::get('name');
+          $obj->symbol = Input::get('symbol');
+          $obj->user_id = Auth::user()->id;
+          $obj->save();
+           return Redirect::to('inventory/metrics')
+              ->with('flash_alert_notice', 'Metrics was successfully created !')->with('alert_class', 'alert-success alert-dismissable');
+        }
+    }
+
+    /**
+     * Displays the form for editing the specified metric.
+     *
+     * @param int|string $id
+     *
+     * @return \Illuminate\View\View
+     */
+    public function edit($id)
+    {
+	
+	$helperObj =  new Helper;
+
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+            
+	$page_action_title = 'Edit Metric';
+        $page_title = 'Metrics Management';
+        $metric = Metric::find($id);
+        if($metric==null)
+        {
+            return Redirect::to('inventory/metrics');
+        }
+        $url = 'inventory/metrics/update/'.$id;
+        return view('packages::metrics.edit', compact('metric','url','page_action_title','page_title'));
+    }
+
+    /**
+     * Updates the specified metric.
+     *
+     * @param MetricRequest $request
+     * @param int|string    $id
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function update($id)
+    {
+        $rules = [
+            'name' => 'required',
+            'symbol' => 'required',
+        ];
+        $validator = Validator::make(Input::all(), $rules);
+        if ($validator->fails()) {
+            return Redirect::to('inventory/metrics/edit/'.$id)
+                ->withErrors($validator);
+        } else {
+          $obj = Metric::find($id);
+          $obj->name = Input::get('name');
+          $obj->symbol = Input::get('symbol');
+          $obj->save();
+           return Redirect::to('inventory/metrics')
+              ->with('flash_alert_notice', 'Metrics was successfully updated !')->with('alert_class', 'alert-success alert-dismissable');
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int $id
+     * @return Response
+     */
+    public function destroy($id)
+    {
+        Metric::destroy($id);  
+        return Redirect::to('/inventory/metrics')
+            ->with('flash_alert_title', 'OK')->with('flash_alert_notice', 'Metric was successfully deleted!')->with('alert_class', 'alert-success alert-dismissable');
+    }
+} 

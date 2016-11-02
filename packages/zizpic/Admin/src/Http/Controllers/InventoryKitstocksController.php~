@@ -1,0 +1,331 @@
+<?php 
+namespace Inventory\Admin\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Redirect;
+use App\Http\Requests;
+use Illuminate\Http\Request;
+use Illuminate\View;
+use Input;
+use Validator;
+use Inventory\Admin\Models\Inventory;
+use Inventory\Admin\Models\Category;
+use Inventory\Admin\Models\Kits;
+use Inventory\Admin\Models\KitStockMap;
+use Auth;
+use Paginate;
+use Menu;
+use App\Helpers\Helper as Helper; 
+
+
+//use View;
+
+class InventorykitstocksController extends Controller
+{
+	/**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+	/**
+	 * Show the application welcome screen to the user.
+	 *
+	 * @return Response
+	 */
+	public function index($id='')
+	{ 
+
+        $helperObj =  new Helper;
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+
+        $results = null;
+		$page_action_title = 'Inventory Kits Management';
+        $page_title = 'Inventory Kits ';
+
+        //$results =  Inventory::where('id',$id)->orderBy('id', 'desc')->paginate(Config::get('app.NumberOfPerPage'));
+        //$results->setPath('kits'); // set path for pagination fix
+ 
+        $ret = new Kits;
+        $results = $ret->with('inventoryName')->where('kit_id',$id)->orderBy('id', 'desc')->paginate(Config::get('app.NumberOfPerPage'));
+
+        return view('packages::kits.index',compact('results','page_action_title','page_title','metricsMenu','stocksMenu','userMenu','locationMenu','supplierMenu','inventoryMenu'));  
+	
+    }
+
+	/**
+     * Displays the form to create a Inventory.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function create($id='')
+    {
+        
+        $helperObj =  new Helper;
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+
+        $page_action_title = 'Create Inventory Kits';
+        $page_title = 'Kits Management';
+        $btn_title = 'Save';
+        $kitname = Inventory::where('id',$id)->lists('name');
+        $url = 'inventory/kits/store';
+        $inventory_lists = Inventory::all();
+        $kit_id = $id;
+        return view('packages::kits.create',compact('kitname','kit_id','page_action_title','page_title','url','btn_title','inventory_lists','metricsMenu','stocksMenu','userMenu','locationMenu','supplierMenu','inventoryMenu'));  
+    
+    } 
+
+    public function createkitstocks($id='')
+    {
+        
+        $helperObj =  new Helper;
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+
+        $page_action_title = 'Create Kit stock';
+        $page_title = 'Kits Management';
+        $btn_title = 'Save';
+        $kitname = Inventory::where('id',$id)->lists('name');
+        $url = 'inventory/kits/storekitstocks';
+        $inventory_lists = Inventory::all();
+        $kit_id = $id;
+        return view('packages::kits.stockskitcreate',compact('kitname','kit_id','page_action_title','page_title','url','btn_title','inventory_lists','metricsMenu','stocksMenu','userMenu','locationMenu','supplierMenu','inventoryMenu'));  
+    
+    } 
+
+    /**
+     *  
+     *
+     * @param SupplierRequest $request
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function storekitstocks()
+    {
+        $kit_id = Input::get('kit_id');  
+        $validator =  kitStockMap::isValidate();
+        if(is_numeric($kit_id) == false ){  
+           return Redirect::to('inventory/inventories'); 
+        }   
+        if ($validator->fails()) {
+            return Redirect::to('inventory/kits/create-kitstocks/'.$kit_id)
+                ->withErrors($validator)
+                ->withInput();
+        } else {
+            $quantity  = Input::get('quantity');
+            $serial_no  = Input::get('serial_no');
+            $inventory_id = Input::get('inventory_id');
+
+
+            $inventory_id = Input::get('inventory_id');
+            
+
+            foreach ($inventory_id as $key => $value) {
+                $obj =  new KitStockMap;
+                $obj->kit_stock_id = Input::get('kit_id');
+                $obj->stock_id  = $value;
+                $obj->quantity  = $quantity[$key];
+                $obj->serial_no = $serial_no[$key];
+                $obj->save();
+            }
+            
+            
+            return Redirect::to('inventory/inventories/')
+              ->with('flash_alert_notice', 'inventory Kit has been created successfully !')->with('alert_class', 'alert-success alert-dismissable');
+        }
+    }
+
+
+    /**
+     *  
+     *
+     * @param SupplierRequest $request
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function store()
+    {
+    	$kit_id = Input::get('kit_id');  
+        $validator =  Kits::isValidate();
+        if(is_numeric($kit_id) == false ){  
+           return Redirect::to('inventory/kits'); 
+        }   
+        if ($validator->fails()) {
+            return Redirect::to('inventory/kits/create-kits/'.$kit_id)
+                ->withErrors($validator)
+                ->withInput();
+        } else {
+            
+            $inventory_id = Input::get('inventory_id');
+            $quantity  = Input::get('quantity');
+
+            foreach ($inventory_id as $key => $value) {
+                $obj =  new Kits;
+                $obj->kit_id = Input::get('kit_id');
+                $obj->inventory_id = $value;
+                $obj->quantity = $quantity[$key];
+                $obj->save();
+            }
+            
+            return Redirect::to('inventory/inventories/')
+              ->with('flash_alert_notice', 'inventory Kit has been created successfully !')->with('alert_class', 'alert-success alert-dismissable');
+        }
+    }
+
+    /**
+     * Displays the form for editing the specified metric.
+     *
+     * @param int|string $id
+     *
+     * @return \Illuminate\View\View
+     */
+    public function edit($id)
+    {
+        
+        $helperObj =  new Helper;
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+
+
+        $page_action_title = 'Edit';
+        $page_title = 'Inventory Management';
+        $item = Inventory::find($id);
+
+        if($item==null)
+        {
+            return Redirect::to('inventory/inventories');
+        }
+        $kitname = Inventory::where('id',$id)->lists('name');
+        $url = 'inventory/kits/store';
+        $inventory_lists = Inventory::all();
+        $kit_id = $id;
+
+        $ret = new Kits;
+        $results = $ret->with('inventoryName')->where('kit_id',$id)->lists('inventory_id');
+        $quantity = $ret->with('inventoryName')->where('kit_id',$id)->lists('quantity');
+        //print_r($quantity);die;
+        $url = 'inventory/kits/update/'.$id;
+
+        $btn_title = 'Update';
+        //echo '<pre>';print_r($inventory);echo '</pre>';die;
+        return view('packages::kits.edit', compact('quantity','results','kitname','kit_id','item','url','page_action_title','page_title','btn_title','category_lists','metric_lists','inventory_lists','metricsMenu','stocksMenu','userMenu','locationMenu','supplierMenu','inventoryMenu'));  
+    
+    }
+
+
+    /**
+     * Updates the specified metric.
+     *
+     * @param SupplierRequest $request
+     * @param int|string    $id
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function update($id)
+    {
+
+        $validator =  Kits::isValidate();
+
+        if ($validator->fails()) {
+
+            return Redirect::to('inventory/kits/edit/'.$id)
+                ->withErrors($validator);
+        } else {
+            
+            Kits::where('kit_id', $id)->delete();
+        
+            $inventory_id = Input::get('inventory_id');
+            $quantity  = Input::get('quantity');
+
+            foreach ($inventory_id as $key => $value) {
+                $obj =  new Kits;
+                $obj->kit_id = Input::get('kit_id');
+                $obj->inventory_id = $value;
+                $obj->quantity = $quantity[$key];
+                $obj->save();
+            }
+
+           return Redirect::to('inventory/inventories')
+              ->with('flash_alert_notice', 'Inventory Kits has been updated successfully !')->with('alert_class', 'alert-success alert-dismissable');
+        }
+    }
+
+    public function editkitstocks($id)
+    {
+        
+        $helperObj =  new Helper;
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $userMenu      =   $helperObj->userMenu();
+        $locationMenu  =   $helperObj->locationMenu();
+        $inventoryMenu =   $helperObj->inventoryMenu();
+        $stocksMenu    =   $helperObj->stocksMenu();    
+        $metricsMenu   =   $helperObj->metricsMenu();    
+        $supplierMenu  =   $helperObj->supplierMenu();
+
+
+        $page_action_title = 'Edit kitstocks';
+        $page_title = 'Inventory Management';
+        $item = Inventory::find($id);
+
+        if($item==null)
+        {
+            return Redirect::to('inventory/inventories');
+        }
+        $kitname = Inventory::where('id',$id)->lists('name');
+        $url = 'inventory/kits/store';
+        $inventory_lists = Inventory::all();
+        $kit_id = $id;
+
+        $ret = new Kits;
+        $results = $ret->with('inventoryName')->where('kit_id',$id)->lists('inventory_id');
+        $quantity = $ret->with('inventoryName')->where('kit_id',$id)->lists('quantity');
+        //print_r($quantity);die;
+        $url = 'inventory/kits/update/'.$id;
+
+        $btn_title = 'Update';
+        //echo '<pre>';print_r($inventory);echo '</pre>';die;
+        return view('packages::kits.edit', compact('quantity','results','kitname','kit_id','item','url','page_action_title','page_title','btn_title','category_lists','metric_lists','inventory_lists','metricsMenu','stocksMenu','userMenu','locationMenu','supplierMenu','inventoryMenu'));  
+    
+    }
+
+	/**
+     * Remove the specified resource from storage.
+     *
+     * @param  int $id
+     * @return Response
+     */
+    public function destroy($id)
+    {
+        
+        Kits::destroy($id);  
+        return Redirect::to('/inventory/inventories')
+            ->with('flash_alert_title', 'OK')->with('flash_alert_notice', 'Inventory kits was successfully deleted!')->with('alert_class', 'alert-success alert-dismissable');
+    }
+}
